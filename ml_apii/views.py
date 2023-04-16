@@ -7,9 +7,10 @@ from django.shortcuts import get_object_or_404
 from .apps import MlApiiConfig
 import onnxruntime as ort
 from PIL import Image
-from torchvision import transforms as transform
+# from torchvision import transforms as transform
 import base64
 from io import BytesIO
+import numpy as np
 
 def run_model(model, x):
 
@@ -18,14 +19,14 @@ def run_model(model, x):
     # print(f'Predicted: "{predicted}"')
     return predicted
 
-imageTransform = transform.Compose(
-    [
-        transform.ToTensor(),
-        transform.Grayscale(),
-        transform.Resize((200,200)),
+# imageTransform = transform.Compose(
+#     [
+#         transform.ToTensor(),
+#         transform.Grayscale(),
+#         transform.Resize((200,200)),
 
-    ]
-)
+#     ]
+# )
 class call_model(APIView):
 
     def get(self,request):
@@ -42,10 +43,14 @@ class call_model(APIView):
         img = Image.open(BytesIO(base64.b64decode(enc)))
         predictor = ort.InferenceSession("./models/plantIdentification.onnx")
         # img = Image.open(params)
-        img = imageTransform(img)
-        img = img.reshape((1,1,200,200))
-        img2 = img.numpy()
-        response = run_model(predictor,img2)            
+        # img = imageTransform(img)
+        # img = img.reshape((1,1,200,200))
+        data = np.array(img)
+        data = data/255
+        data = data.reshape((1,1,100,100))
+        data = data.astype(np.float32)
+        # img2 = img.numpy()
+        response = run_model(predictor,img)            
         # returning JSON response
         response= {"prediction":str(response)}
         return JsonResponse(response, safe=False)
